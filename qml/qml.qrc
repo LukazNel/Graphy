@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="main">main.qml</file>
+        <file>VertexDelegate.qml</file>
+        <file>EdgeDelegate.qml</file>
+        <file>VertexShape.qml</file>
+        <file>EdgeShape.qml</file>
+    </qresource>
+</RCC>
