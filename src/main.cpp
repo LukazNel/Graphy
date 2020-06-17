@@ -1,27 +1,13 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <QTextStream>
-
-#include "../include/adjacencymatrix.h"
+#include <QQuickStyle>
 
 int main(int argc, char *argv[])
 {
-    AdjacencyMatrix matrix({
-                               { 0, 1, 7, 0, 0, 0 },
-                               { 0, 0, 0, 9, 0, 0 },
-                               { 0, 0, 0, 0, 4, 0 },
-                               { 0, 0, 0, 0, 10, 5 },
-                               { 0, 0, 0, 0, 0, 3 },
-                               { 0, 0, 0, 0, 3, 0 }
-                           }, true);
-    /*QTextStream out(stdout);
-    out << matrix;
-
-    matrix.dijkstra(0, 5);*/
-
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
     QGuiApplication app(argc, argv);
+    QQuickStyle::setStyle("Material");
 
     QQmlApplicationEngine engine;
     const QUrl url(QStringLiteral("qrc:/main"));
@@ -33,5 +19,4 @@ int main(int argc, char *argv[])
     engine.load(url);
 
     return app.exec();
-    //return 0;
 }

@@ -10,7 +10,6 @@
 
 class AdjacencyMatrix {
 private:
-    //unsigned int num_vertices;
     std::vector<std::vector<int> > rows;
 
 public:

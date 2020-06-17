@@ -3,7 +3,11 @@
 // Constructors
 AdjacencyListQ::AdjacencyListQ(QObject* parent)
     : QAbstractListModel(parent), is_undirected(false),
-      is_bad(false), labelA(-1), labelB(-1) {};
+      is_bad(false), debug_on(false), labelA(-1), labelB(-1) {
+    #ifdef QT_DEBUG
+        debug_on = true;
+    #endif
+};
 
 // Public Methods
 auto AdjacencyListQ::getVertices()
@@ -26,7 +30,9 @@ auto AdjacencyListQ::data(const QModelIndex& index, int role) const
 -> QVariant {
     QVariant result;
     switch (role) {
-        case LabelType : result = QVariant::fromValue((m_vertices.at(index.row())->getLabel()));
+        case LabelAlphType : result = QVariant::fromValue(QString('A' + m_vertices.at(index.row())->getLabel()));
+            break;
+        case LabelNumType : result = QVariant::fromValue(m_vertices.at(index.row())->getLabel());
             break;
         case EdgeType : result = QVariant::fromValue(m_vertices.at(index.row()));
             break;
@@ -54,9 +60,11 @@ auto AdjacencyListQ::headerData(int section, Qt::Orientation orientation, int ro
 auto AdjacencyListQ::roleNames() const
 -> QHash<int, QByteArray> {
     QHash<int, QByteArray> roles;
-    roles[LabelType] = "label";
+    roles[LabelAlphType] = "labelAlph";
+    roles[LabelNumType] = "labelNum";
     roles[EdgeType] = "edges";
     roles[IsOnPath] = "isOnPath";
+    //roles[IsSelected] = "isSelected";
     return roles;
 }
 
@@ -89,7 +97,7 @@ void AdjacencyListQ::refreshLabels(int rm_vert_label) {
         it->setLabel(num++);
     }
     //m_vertices[0]->setLabel(13);
-    dataChanged(createIndex(0,0), createIndex(m_vertices.size()-1,0), {LabelType});
+    dataChanged(createIndex(0,0), createIndex(m_vertices.size()-1,0), {LabelAlphType, LabelNumType});
 }
 
 bool AdjacencyListQ::insertRows(int before_row, int count, const QModelIndex& parent) {
@@ -146,8 +154,10 @@ void AdjacencyListQ::runDijkstra(int label) {
         } else {
             if (labelA == -1)
                 labelA = label;
-            else
+            else if (labelB == -1)
                 labelB = label;
+            else
+                return;
         }
 
         runDijkstraHelper();
@@ -196,19 +206,15 @@ void AdjacencyListQ::clearPathHighlights() {
 }
 
 void AdjacencyListQ::runDijkstraHelper() {
-    if (labelA == -1 || labelB == -1) {
-        clearPathHighlights();
+    clearPathHighlights();
+    if (labelA == -1 || labelB == -1)
         return;
-    }
 
     auto matrix = makeAdjacencyMatrix();
     auto result = matrix.dijkstra(labelA, labelB);
 
-    QTextStream out(stdout);
-    out << matrix << '\n';
-
     if (result.empty() == true) {
-        out << "Path from " << labelA << " to " << labelB << " is impossible\n";
+        //out << "Path from " << labelA << " to " << labelB << " is impossible\n";
         clearPathHighlights();
         setIsBad(true);
         setTotalCost(0);
@@ -221,5 +227,5 @@ void AdjacencyListQ::runDijkstraHelper() {
             dataChanged(index, index, {IsOnPath});
         }
     }
-    out.flush();
+    //out.flush();
 }

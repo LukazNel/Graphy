@@ -41,13 +41,15 @@ signals:
 class VertexListQ : public QAbstractListModel {
     Q_OBJECT
     Q_PROPERTY(int label READ getLabel WRITE setLabel NOTIFY labelChanged)
-    Q_PROPERTY(bool isOnPath READ isOnPath WRITE setOnPath NOTIFY isOnPathChanged)
+    Q_PROPERTY(bool isOnPath READ isOnPath NOTIFY isOnPathChanged)
+    //Q_PROPERTY(bool isSelected READ isSelected WRITE setSelected NOTIFY isSelectdChanged)
     Q_PROPERTY(QQmlListProperty<VertexQ> edges READ getEdges)
     QML_ELEMENT
 
 private:
     int m_label;
     bool is_on_path;
+    bool is_selected;
     std::vector<VertexQ* > m_edges;
 
     static void addEdge(QQmlListProperty<VertexQ>* list, VertexQ* item);
@@ -61,9 +63,9 @@ private:
 
 public:
     enum DataTypes {
-        LabelType = Qt::UserRole,
-        WeightType,
-        MixedType
+        LabelNumType = Qt::UserRole,
+        LabelAlphType,
+        WeightType
     };
 
     VertexListQ(QObject* parent = nullptr);

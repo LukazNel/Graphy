@@ -1,4 +1,4 @@
-import QtQuick 2.15
+import QtQuick 2.12
 //import "factory.js" as Factory
 
 Rectangle {
@@ -7,17 +7,18 @@ Rectangle {
 
     width: 40
     height: 40
+    anchors.verticalCenter: parent.verticalCenter
 
     border {
-        color: "blue"
+        color: "black"
         width: 1
     }
 
-    color: "orange"
+    color: "white"
 
     Text {
         anchors.centerIn: parent
-        text: labelweight
+        text: labelAlph + " | " + weight
     }
 
     /*MouseArea {

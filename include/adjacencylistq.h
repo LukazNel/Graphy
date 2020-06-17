@@ -6,8 +6,6 @@
 #include <vector>
 #include <qqml.h>
 
-#include <QTextStream>
-
 #include "vertexlistq.h"
 #include "adjacencymatrix.h"
 
@@ -16,6 +14,7 @@ class AdjacencyListQ : public QAbstractListModel {
     Q_PROPERTY(QQmlListProperty<VertexListQ> vertices READ getVertices)
     Q_PROPERTY(bool isUndirected READ isUndirected WRITE setUndirected NOTIFY isUndirectedChanged)
     Q_PROPERTY(bool isBad READ isBad NOTIFY isBadChanged)
+    Q_PROPERTY(bool debugIsOn READ debugIsOn NOTIFY debugIsOnChanged)
     Q_PROPERTY(int totalCost READ totalCost NOTIFY totalCostChanged)
     QML_ELEMENT
 
@@ -23,6 +22,7 @@ private:
     std::vector<VertexListQ* > m_vertices;
     bool is_undirected;
     bool is_bad;
+    bool debug_on;
     int labelA;
     int labelB;
     int total_cost;
@@ -42,9 +42,11 @@ private:
     void runDijkstraHelper();
 public:
     enum DataTypes {
-        LabelType = Qt::UserRole,
+        LabelNumType = Qt::UserRole,
+        LabelAlphType,
         EdgeType,
         IsOnPath
+        //IsSelected
     };
 
     AdjacencyListQ(QObject* parent = nullptr);
@@ -52,6 +54,7 @@ public:
     auto getVertices() -> QQmlListProperty<VertexListQ>;
     bool isUndirected() const { return is_undirected; }
     bool isBad() const { return is_bad; }
+    bool debugIsOn() const { return debug_on; }
     int totalCost() const { return total_cost; }
 
     // Read Methods
@@ -89,6 +92,7 @@ public slots:
 signals:
     void isUndirectedChanged();
     void isBadChanged();
+    void debugIsOnChanged();
     void totalCostChanged();
 };
 

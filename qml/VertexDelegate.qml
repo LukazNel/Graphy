@@ -1,4 +1,5 @@
-import QtQuick 2.15
+import QtQuick 2.12
+import QtQuick.Controls.Material 2.12
 //import custom 1.0
 //import "factory.js" as Factory
 
@@ -13,13 +14,14 @@ Row {
 
     Rectangle {
         id: labelBlock
-        color: "red"
+        color: "white"
         height: parent.height
         width: parent.height
+        border { color: "black"; width: 1 }
 
         Text {
             anchors.centerIn: parent
-            text: label
+            text: labelAlph
         }
 
         /*MouseArea {
@@ -38,13 +40,14 @@ Row {
     Rectangle {
         width: parent.width - labelBlock.width
         height: parent.height
-        color: "gray"
+        color: "white"
         ListView {
             anchors.fill: parent
             orientation: ListView.Horizontal
             model: edges
+            spacing: 2
             delegate: EdgeDelegate {/*Component.onCompleted: {modelID = edges}*/}
-            focus: true
+            //focus: true
         }
     }
 }

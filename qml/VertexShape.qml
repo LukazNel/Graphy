@@ -1,6 +1,8 @@
-import QtQuick 2.15
-import QtQml 2.15
-import custom 1.0
+import QtQuick 2.12
+import QtQuick.Controls 2.12
+import QtQuick.Controls.Material 2.12
+import QtQml 2.12
+//import custom 1.0
 
 DropArea {
     id: root
@@ -10,7 +12,7 @@ DropArea {
 
     function reset() {
         root.selected = false
-        highlight.visible = false
+        background.border.color = "black"
         modelID.runDijkstra(-1)
         modelID.runDijkstra(-1)
     }
@@ -48,41 +50,32 @@ DropArea {
     }
 
     Rectangle {
+        id: background
         anchors.fill: parent
-        color: isOnPath ? "green" : "red"
+        color: isOnPath ? Material.accent : Material.primary
+        border { color: "black"; width: 2 }
         radius: width/2
 
-        Text {
+        Label {
             id: text
-            text: label
+            Material.foreground: "white"
+            text: labelAlph
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
         }
     }
 
-    Rectangle {
-        id: highlight
-        visible: false
-        anchors.fill: parent
-        radius: width/2
-        color: "#00000000"
-        border {
-            color: "black"
-            width: 2
-        }
-    }
-
     property var dragParentID
     onEntered: function(drag) {
-            highlight.visible = true
+            background.border.color = Material.accent
             dragParentID = drag.source
         }
     onExited: {
-        highlight.visible = false
+        background.border.color = "black"
     }
     keys: ["edges"]
     onDropped: {
-        dragParentID.parent.append(label, root.x + root.width/2, root.y + root.width/2)
+        dragParentID.parent.append(labelNum, root.x + root.width/2, root.y + root.width/2)
     }
 
     property real vertexX
@@ -99,12 +92,10 @@ DropArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         propagateComposedEvents: true
-        onEntered: highlight.visible = true
-        onExited: !selected ? highlight.visible = false : true
+        onEntered: background.border.color = Material.accent
+        onExited: background.border.color = !selected ? "black" : Material.accent
         hoverEnabled: true
-        drag {
-            target: dragger
-        }
+        drag { target: dragger }
 
         onPositionChanged: {
             if (pressed) {
@@ -132,11 +123,7 @@ DropArea {
         }
         onClicked: {
             selected = !selected
-            //if (selected == true) {
-                modelID.runDijkstra(label)
-            //} else {
-            //    modelID.runDijkstra(-1)
-            //}
+            modelID.runDijkstra(labelNum)
         }
     }
 }

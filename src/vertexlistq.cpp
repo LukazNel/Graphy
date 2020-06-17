@@ -56,16 +56,13 @@ auto VertexListQ::data(const QModelIndex& index, int role) const
 -> QVariant {
     QVariant result;
     switch (role) {
-    case LabelType : return m_edges.at(index.row())->label();
+    case LabelNumType : return m_edges.at(index.row())->label();
+        break;
+    case LabelAlphType : return QString('A' + m_edges.at(index.row())->label());
         break;
     case WeightType : return m_edges.at(index.row())->weight();
         break;
-    case MixedType : {
-        const VertexQ* data = m_edges.at(index.row());
-        result = QString("%1 | %2").arg(data->label()).arg(data->weight());
-    }
-            break;
-        default : result = QVariant();
+    default : result = QVariant();
     }
     return result;
 }
@@ -87,9 +84,9 @@ auto VertexListQ::headerData(int section, Qt::Orientation orientation, int role)
 auto VertexListQ::roleNames() const
 -> QHash<int, QByteArray> {
     QHash<int, QByteArray> roles;
-    roles[LabelType] = "label";
+    roles[LabelNumType] = "labelNum";
+    roles[LabelAlphType] = "labelAlph";
     roles[WeightType] = "weight";
-    roles[MixedType] = "labelweight";
     return roles;
 }
 
@@ -131,7 +128,6 @@ auto VertexListQ::getBareExpandedList() const
 bool VertexListQ::setData(const QModelIndex &index, const QVariant &value, int role) {
     bool result = false;
     switch (role) {
-    case LabelType : result = false;
     case WeightType : {
         m_edges[index.row()]->setWeight(qvariant_cast<int>(value));
         dataChanged(index, index);
