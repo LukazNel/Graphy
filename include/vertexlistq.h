@@ -7,59 +7,60 @@
 #include <algorithm>
 #include <qqml.h>
 
-struct Vertex {
-    int label;
+struct Edge {
+    int to_vertex;
     int weight;
 };
 
-class VertexQ : public QObject {
+class EdgeQ : public QObject {
     Q_OBJECT
-    Q_PROPERTY(int label READ label WRITE setLabel NOTIFY labelChanged)
+    Q_PROPERTY(int toVertex READ toVertex WRITE setLabel NOTIFY labelChanged)
     Q_PROPERTY(int weight READ weight WRITE setWeight NOTIFY weightChanged)
     QML_ELEMENT
 private:
-    Vertex m_data;
+    Edge m_data;
 
 public:
-    VertexQ(QObject* parent = nullptr) : QObject(parent) {}
-    VertexQ(Vertex init, QObject* parent = nullptr) : QObject(parent), m_data(init) {}
+    EdgeQ(QObject* parent = nullptr) : QObject(parent) {}
+    EdgeQ(Edge init, QObject* parent = nullptr) : QObject(parent), m_data(init) {}
 
-    int label() const { return m_data.label; }
+    int toVertex() const { return m_data.to_vertex; }
     int weight() const { return m_data.weight; }
 
-    void setLabel(const int label) { m_data.label = label; }
+    void setLabel(const int label) { m_data.to_vertex = label; }
     void setWeight(const int weight) { m_data.weight = weight; }
-    auto getVertex() const -> Vertex { return m_data; };
+    auto getVertex() const -> Edge { return m_data; };
 
-    ~VertexQ() {}
+    ~EdgeQ() {}
 
 signals:
     void labelChanged();
     void weightChanged();
 };
 
-class VertexListQ : public QAbstractListModel {
+class EdgeListQ : public QAbstractListModel {
     Q_OBJECT
-    Q_PROPERTY(int label READ getLabel WRITE setLabel NOTIFY labelChanged)
+    Q_PROPERTY(int label READ getLabel NOTIFY labelChanged)
     Q_PROPERTY(bool isOnPath READ isOnPath NOTIFY isOnPathChanged)
-    //Q_PROPERTY(bool isSelected READ isSelected WRITE setSelected NOTIFY isSelectdChanged)
-    Q_PROPERTY(QQmlListProperty<VertexQ> edges READ getEdges)
+    Q_PROPERTY(bool isSelected READ isSelected WRITE setSelected NOTIFY isSelectedChanged)
+    Q_PROPERTY(QQmlListProperty<EdgeQ> edges READ makeEdgesProperty)
     QML_ELEMENT
 
 private:
-    int m_label;
+    int vertex_label;
     bool is_on_path;
     bool is_selected;
-    std::vector<VertexQ* > m_edges;
+    std::vector<EdgeQ* > m_edges;
 
-    static void addEdge(QQmlListProperty<VertexQ>* list, VertexQ* item);
-    static auto numEdges(QQmlListProperty<VertexQ>* list)
+    // QQmlListProperty Methods
+    static void addEdge(QQmlListProperty<EdgeQ>* list, EdgeQ* item);
+    static auto numEdges(QQmlListProperty<EdgeQ>* list)
         -> int;
-    static auto edgeAt(QQmlListProperty<VertexQ>* list, int index)
-        -> VertexQ*;
-    static void clearEdges(QQmlListProperty<VertexQ>* list);
-    static void replaceEdge(QQmlListProperty<VertexQ>* list, int index, VertexQ* item);
-    static void truncateEdge(QQmlListProperty<VertexQ>* list);
+    static auto edgeAt(QQmlListProperty<EdgeQ>* list, int index)
+        -> EdgeQ*;
+    static void clearEdges(QQmlListProperty<EdgeQ>* list);
+    static void replaceEdge(QQmlListProperty<EdgeQ>* list, int index, EdgeQ* item);
+    static void truncateEdge(QQmlListProperty<EdgeQ>* list);
 
 public:
     enum DataTypes {
@@ -68,19 +69,29 @@ public:
         WeightType
     };
 
-    VertexListQ(QObject* parent = nullptr);
-    //VertexListQ(int label, QVector<VertexQ* > edges, QObject* parent = nullptr);
+    // Constructors
+    EdgeListQ(QObject* parent = nullptr)
+        : QAbstractListModel(parent), is_on_path(false), is_selected(false) {}
 
-    int getLabel() const;
+    // Getter Methods
+    int getLabel() const { return vertex_label; }
     bool isOnPath() const { return is_on_path; }
-    auto getEdges() -> QQmlListProperty<VertexQ>;
-    auto getVertex(int index) const -> VertexQ*;
-    void setVertex(int index, VertexQ* item);
+    bool isSelected() const { return is_selected; }
+    auto getVertex(int index) const -> EdgeQ* { return m_edges.at(index); }
+
+    auto makeEdgesProperty() -> QQmlListProperty<EdgeQ>;
+    auto getBareExpandedList() const -> std::vector<int>;
+
+    // Setter Methods
+    void setLabel(const int label) { vertex_label = label; labelChanged(); }
+    void setOnPath(const bool b) { is_on_path = b; isOnPathChanged(); }
+    void setSelected(const bool b) { is_selected = b; isSelectedChanged(); }
+    void setVertex(int index, EdgeQ* item) { m_edges[index] = item; };
+    // setVertex: dataChanged called on site
+
     void updateVertices(int rm_vert_label);
 
-    void setLabel(const int label);
-    void setOnPath(bool b) { is_on_path = b; }
-
+// Inherited Methods
     // Read Methods
     auto rowCount(const QModelIndex& parent = QModelIndex()) const
         -> int override;
@@ -90,7 +101,6 @@ public:
         -> QVariant override;
     auto roleNames() const
         -> QHash<int, QByteArray> override;
-    auto getBareExpandedList() const -> std::vector<int>;
 
     // Write Methods
     auto setData(const QModelIndex& index, const QVariant& value, int role = Qt::DisplayRole)
@@ -104,7 +114,7 @@ public:
     auto removeRows(int from_row, int count, const QModelIndex& parent = QModelIndex())
         -> bool override;
 
-    ~VertexListQ() {};
+    ~EdgeListQ() {};
 
 public slots:
     void append(QObject* object, int label, int weight);
@@ -113,6 +123,7 @@ public slots:
 signals:
     void labelChanged();
     void isOnPathChanged();
+    void isSelectedChanged();
 };
 
 #endif // VERTEXLISTQ_H

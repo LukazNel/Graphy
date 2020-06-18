@@ -8,10 +8,9 @@ DropArea {
     id: root
     property var modelID
     property var vertexDummy
-    property bool selected: false
+    //property bool selected: false
 
     function reset() {
-        root.selected = false
         background.border.color = "black"
         modelID.runDijkstra(-1)
         modelID.runDijkstra(-1)
@@ -86,6 +85,11 @@ DropArea {
         edges.append(vertexDummy.createObject(null, {}), from_label, 1)
     }
 
+    onFocusChanged: {
+        isSelected = false
+        modelID.runDijkstra(labelNum)
+        background.border.color = "black"
+    }
 
     MouseArea {
         id: other
@@ -93,7 +97,7 @@ DropArea {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         propagateComposedEvents: true
         onEntered: background.border.color = Material.accent
-        onExited: background.border.color = !selected ? "black" : Material.accent
+        onExited: background.border.color = !isSelected ? "black" : Material.accent
         hoverEnabled: true
         drag { target: dragger }
 
@@ -110,7 +114,7 @@ DropArea {
                 if (pressedButtons & Qt.LeftButton) {
                     selector.opacity = 1
                 } else if (pressedButtons & Qt.RightButton) {
-                    modelID.remove(index)
+                    modelID.remove(labelNum)
                 }
         }
         onReleased: {
@@ -122,7 +126,7 @@ DropArea {
             dragger.y = width/2
         }
         onClicked: {
-            selected = !selected
+            isSelected = !isSelected
             modelID.runDijkstra(labelNum)
         }
     }

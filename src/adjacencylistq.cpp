@@ -9,10 +9,10 @@ AdjacencyListQ::AdjacencyListQ(QObject* parent)
     #endif
 };
 
-// Public Methods
-auto AdjacencyListQ::getVertices()
--> QQmlListProperty<VertexListQ> {
-    return QQmlListProperty<VertexListQ>( this, this,
+// Public Getter Methods
+auto AdjacencyListQ::makeVerticesProperty()
+-> QQmlListProperty<EdgeListQ> {
+    return QQmlListProperty<EdgeListQ>( this, this,
                                           &AdjacencyListQ::addVertex,
                                           &AdjacencyListQ::numVertices,
                                           &AdjacencyListQ::vertexAt,
@@ -21,6 +21,35 @@ auto AdjacencyListQ::getVertices()
                                           &AdjacencyListQ::truncateVertex);
 }
 
+auto AdjacencyListQ::makeAdjacencyMatrix() const
+-> AdjacencyMatrix {
+    std::vector<std::vector<int> > copy;
+    for (const auto* it : m_vertices) {
+        copy.push_back(it->getBareExpandedList());
+    }
+
+    AdjacencyMatrix matrix(copy, is_undirected);
+    return matrix;
+}
+
+// Public Setter Methods
+void AdjacencyListQ::refreshLabels(int rm_vert_label) {
+    int num = 0;
+    for (auto it : m_vertices) {
+        it->updateVertices(rm_vert_label);
+        it->setLabel(num++);
+    }
+    dataChanged(createIndex(0,0), createIndex(m_vertices.size()-1,0), {LabelAlphType, LabelNumType});
+}
+
+void AdjacencyListQ::resetSelected() {
+    for (auto it : m_vertices) {
+        it->setSelected(false);
+    }
+    dataChanged(createIndex(0,0), createIndex(m_vertices.size()-1,0), {IsSelected});
+}
+
+// Inherited Read Methods
 int AdjacencyListQ::rowCount(const QModelIndex& /*parent*/) const {
     return m_vertices.size();
 }
@@ -37,6 +66,8 @@ auto AdjacencyListQ::data(const QModelIndex& index, int role) const
         case EdgeType : result = QVariant::fromValue(m_vertices.at(index.row()));
             break;
         case IsOnPath : result = QVariant::fromValue(m_vertices.at(index.row())->isOnPath());
+            break;
+        case IsSelected : result = QVariant::fromValue(m_vertices.at(index.row())->isSelected());
             break;
         default : result = QVariant();
     }
@@ -64,23 +95,18 @@ auto AdjacencyListQ::roleNames() const
     roles[LabelNumType] = "labelNum";
     roles[EdgeType] = "edges";
     roles[IsOnPath] = "isOnPath";
-    //roles[IsSelected] = "isSelected";
+    roles[IsSelected] = "isSelected";
     return roles;
 }
 
-auto AdjacencyListQ::makeAdjacencyMatrix() const
--> AdjacencyMatrix {
-    std::vector<std::vector<int> > copy;
-    for (const auto* it : m_vertices) {
-        copy.push_back(it->getBareExpandedList());
+// Inherited Write Methods
+bool AdjacencyListQ::setData(const QModelIndex& index, const QVariant& value, int role) {
+    bool result = false;
+    switch (role) {
+        case IsSelected : { m_vertices[index.row()]->setSelected(qvariant_cast<bool>(value)); result = true; }
+        break;
     }
-
-    AdjacencyMatrix matrix(copy, is_undirected);
-    return matrix;
-}
-
-bool AdjacencyListQ::setData(const QModelIndex &/*index*/, const QVariant &/*value*/, int /*role*/) {
-    return false;
+    return result;
 }
 
 auto AdjacencyListQ::flags(const QModelIndex& /*index*/) const
@@ -90,16 +116,7 @@ auto AdjacencyListQ::flags(const QModelIndex& /*index*/) const
             | Qt::ItemIsEnabled;
 }
 
-void AdjacencyListQ::refreshLabels(int rm_vert_label) {
-    int num = 0;
-    for (auto it : m_vertices) {
-        it->updateVertices(rm_vert_label);
-        it->setLabel(num++);
-    }
-    //m_vertices[0]->setLabel(13);
-    dataChanged(createIndex(0,0), createIndex(m_vertices.size()-1,0), {LabelAlphType, LabelNumType});
-}
-
+// Inherited Resize Methods
 bool AdjacencyListQ::insertRows(int before_row, int count, const QModelIndex& parent) {
     beginInsertRows(parent, before_row + 1, before_row + count);
     m_vertices.insert(m_vertices.begin() + before_row, count, {});
@@ -114,17 +131,21 @@ bool AdjacencyListQ::removeRows(int from_row, int count, const QModelIndex &pare
     return true;
 }
 
+// Public Slots
 void AdjacencyListQ::append(QObject* o) {
+    reset();
     int i = m_vertices.size();
     beginInsertRows(QModelIndex(), i, i);
     o->setParent(this);
-    VertexListQ* obj = qobject_cast<VertexListQ*>(o);
+    EdgeListQ* obj = qobject_cast<EdgeListQ*>(o);
     obj->setLabel(m_vertices.size());
     m_vertices.push_back(obj);
     endInsertRows();
 }
 
 QObject* AdjacencyListQ::remove(int label) {
+    reset();
+    labelA = -1; labelB = -1;
     beginRemoveRows(QModelIndex(), label, label);
     auto it = m_vertices.erase(m_vertices.begin() + label, m_vertices.begin() + label + 1);
     QObject* removed = (QObject*)*it;
@@ -137,15 +158,13 @@ QObject* AdjacencyListQ::remove(int label) {
 
 void AdjacencyListQ::runDijkstra(int label) {
         if (label == -1) {
-            setIsBad(false);
-            setTotalCost(0);
+            reset();
             if (labelB != -1)
                 labelB = -1;
             else
                 labelA = -1;
         } else if (labelA == label || labelB == label) {
-            setIsBad(false);
-            setTotalCost(0);
+            reset();
             if (labelA == label) {
                 labelA = labelB;
                 labelB = -1;
@@ -164,45 +183,45 @@ void AdjacencyListQ::runDijkstra(int label) {
 }
 
 // Private Methods
-void AdjacencyListQ::addVertex(QQmlListProperty<VertexListQ>* list, VertexListQ* item) {
+// QQmlProperty Methods
+void AdjacencyListQ::addVertex(QQmlListProperty<EdgeListQ>* list, EdgeListQ* item) {
     AdjacencyListQ* object = qobject_cast<AdjacencyListQ* >(list->object);
     object->m_vertices.push_back(item);
 }
 
-auto AdjacencyListQ::numVertices(QQmlListProperty<VertexListQ>* list) -> int {
+auto AdjacencyListQ::numVertices(QQmlListProperty<EdgeListQ>* list) -> int {
     AdjacencyListQ* object = qobject_cast<AdjacencyListQ* >(list->object);
     return object->m_vertices.size();
 }
 
-auto AdjacencyListQ::vertexAt(QQmlListProperty<VertexListQ>* list, int index)
--> VertexListQ* {
+auto AdjacencyListQ::vertexAt(QQmlListProperty<EdgeListQ>* list, int index)
+-> EdgeListQ* {
     AdjacencyListQ* object = qobject_cast<AdjacencyListQ* >(list->object);
     return object->m_vertices.at(index);
 }
 
-void AdjacencyListQ::clearVertices(QQmlListProperty<VertexListQ> *list) {
+void AdjacencyListQ::clearVertices(QQmlListProperty<EdgeListQ> *list) {
     AdjacencyListQ* object = qobject_cast<AdjacencyListQ* >(list->object);
     object->m_vertices.clear();
 }
 
-void AdjacencyListQ::replaceVertex(QQmlListProperty<VertexListQ> *list, int index,
-                                   VertexListQ *item) {
+void AdjacencyListQ::replaceVertex(QQmlListProperty<EdgeListQ> *list, int index,
+                                   EdgeListQ *item) {
     AdjacencyListQ* object = qobject_cast<AdjacencyListQ* >(list->object);
     object->m_vertices[index] = item;
 }
 
-void AdjacencyListQ::truncateVertex(QQmlListProperty<VertexListQ> *list) {
+void AdjacencyListQ::truncateVertex(QQmlListProperty<EdgeListQ> *list) {
     AdjacencyListQ* object = qobject_cast<AdjacencyListQ* >(list->object);
     object->m_vertices.pop_back();
 }
 
+// Private Setter Methods
 void AdjacencyListQ::clearPathHighlights() {
-    int i = 0;
     for (auto& it : m_vertices) {
         it->setOnPath(false);
-        auto index = createIndex(i++, 0);
-        dataChanged(index, index, {IsOnPath});
     }
+    dataChanged(createIndex(0, 0), createIndex(m_vertices.size(), 0), {IsOnPath});
 }
 
 void AdjacencyListQ::runDijkstraHelper() {
@@ -214,7 +233,6 @@ void AdjacencyListQ::runDijkstraHelper() {
     auto result = matrix.dijkstra(labelA, labelB);
 
     if (result.empty() == true) {
-        //out << "Path from " << labelA << " to " << labelB << " is impossible\n";
         clearPathHighlights();
         setIsBad(true);
         setTotalCost(0);
@@ -227,5 +245,4 @@ void AdjacencyListQ::runDijkstraHelper() {
             dataChanged(index, index, {IsOnPath});
         }
     }
-    //out.flush();
 }
