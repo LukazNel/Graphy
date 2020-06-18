@@ -56,10 +56,7 @@ auto AdjacencyMatrix::dijkstra(int A, int B)
     path_ptr current_path = std::make_unique<path>();
     current_path->next = A;
     int max_verts = rows.size();
-    while (true) {
-        if (current_path->next == B) {
-            break;
-        }
+    while (current_path->next != B) {
         current_path->to_here.push(current_path->next);
         for (int i = 0; i < max_verts; i++) {
             int index = current_path->to_here.top();

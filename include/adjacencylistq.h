@@ -11,15 +11,15 @@
 
 class AdjacencyListQ : public QAbstractListModel {
     Q_OBJECT
-    Q_PROPERTY(QQmlListProperty<VertexListQ> vertices READ getVertices)
     Q_PROPERTY(bool isUndirected READ isUndirected WRITE setUndirected NOTIFY isUndirectedChanged)
     Q_PROPERTY(bool isBad READ isBad NOTIFY isBadChanged)
     Q_PROPERTY(bool debugIsOn READ debugIsOn NOTIFY debugIsOnChanged)
     Q_PROPERTY(int totalCost READ totalCost NOTIFY totalCostChanged)
+    Q_PROPERTY(QQmlListProperty<EdgeListQ> vertices READ makeVerticesProperty)
     QML_ELEMENT
 
 private:
-    std::vector<VertexListQ* > m_vertices;
+    std::vector<EdgeListQ* > m_vertices;
     bool is_undirected;
     bool is_bad;
     bool debug_on;
@@ -27,36 +27,47 @@ private:
     int labelB;
     int total_cost;
 
-    static void addVertex(QQmlListProperty<VertexListQ>* list, VertexListQ* item);
-    static auto numVertices(QQmlListProperty<VertexListQ>* list)
+    // QQmlListProperty Methods
+    static void addVertex(QQmlListProperty<EdgeListQ>* list, EdgeListQ* item);
+    static auto numVertices(QQmlListProperty<EdgeListQ>* list)
         -> int;
-    static auto vertexAt(QQmlListProperty<VertexListQ>* list, int index)
-        -> VertexListQ*;
-    static void clearVertices(QQmlListProperty<VertexListQ>* list);
-    static void replaceVertex(QQmlListProperty<VertexListQ>* list, int index, VertexListQ* item);
-    static void truncateVertex(QQmlListProperty<VertexListQ>* list);
+    static auto vertexAt(QQmlListProperty<EdgeListQ>* list, int index)
+        -> EdgeListQ*;
+    static void clearVertices(QQmlListProperty<EdgeListQ>* list);
+    static void replaceVertex(QQmlListProperty<EdgeListQ>* list, int index, EdgeListQ* item);
+    static void truncateVertex(QQmlListProperty<EdgeListQ>* list);
 
+    // Setter Methods
     void setIsBad(bool b) { is_bad = b; isBadChanged(); }
     void setTotalCost(int cost) { total_cost = cost; totalCostChanged(); }
     void clearPathHighlights();
     void runDijkstraHelper();
+    void reset() { setIsBad(false); setTotalCost(0); resetSelected(); }
 public:
     enum DataTypes {
         LabelNumType = Qt::UserRole,
         LabelAlphType,
         EdgeType,
-        IsOnPath
-        //IsSelected
+        IsOnPath,
+        IsSelected
     };
 
     AdjacencyListQ(QObject* parent = nullptr);
 
-    auto getVertices() -> QQmlListProperty<VertexListQ>;
+    // Getter Methods
     bool isUndirected() const { return is_undirected; }
     bool isBad() const { return is_bad; }
     bool debugIsOn() const { return debug_on; }
     int totalCost() const { return total_cost; }
 
+    auto makeVerticesProperty() -> QQmlListProperty<EdgeListQ>;
+    auto makeAdjacencyMatrix() const -> AdjacencyMatrix;
+
+    // Setter Methods
+    void refreshLabels(int rm_vert_label);
+    void resetSelected();
+
+// Inherited Methods
     // Read Methods
     auto rowCount(const QModelIndex& parent = QModelIndex()) const
         -> int override;
@@ -66,7 +77,6 @@ public:
         -> QVariant override;
     auto roleNames() const
         -> QHash<int, QByteArray> override;
-    auto makeAdjacencyMatrix() const -> AdjacencyMatrix;
 
     // Write Methods
     void setUndirected(bool b) { is_undirected = b; runDijkstraHelper(); }
@@ -74,7 +84,6 @@ public:
         -> bool override;
     auto flags(const QModelIndex& index) const
         -> Qt::ItemFlags override;
-    void refreshLabels(int rm_vert_label);
 
     // Resize Methods
     auto insertRows(int before_row, int count, const QModelIndex& parent = QModelIndex())

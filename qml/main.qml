@@ -22,8 +22,8 @@ ApplicationWindow {
         onIsBadChanged: background.color = isBad ? Material.accent : Material.background
         onTotalCostChanged: footerText.visible = totalCost == 0 ? false : true
     }
-    Component { id: rootListDummy; VertexListQ {} }
-    Component { id: rootVertexDummy; VertexQ {} }
+    Component { id: rootListDummy; EdgeListQ {} }
+    Component { id: rootVertexDummy; EdgeQ {} }
 
     Row {
         id: rootview
